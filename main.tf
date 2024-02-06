@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     aws = {
-      source = "hashicorp/aws"
+      source  = "hashicorp/aws"
       version = "4.45.0"
     }
   }
@@ -29,29 +29,50 @@ resource "aws_s3_bucket" "s3_iac_example" {
   bucket = "lz-s3-iac-example"
 }
 
-
-resource "aws_s3_bucket_ownership_controls" "s3_iac_ownership" {
+resource "aws_s3_bucket_versioning" "s3_iac_example_versining" {
   bucket = aws_s3_bucket.s3_iac_example.id
-  rule {
-    object_ownership = "BucketOwnerPreferred"
+  versioning_configuration {
+    status = "Enabled"
   }
 }
 
-resource "aws_s3_bucket_public_access_block" "s3_access" {
+resource "aws_s3_bucket_public_access_block" "access_s3_iac_example" {
   bucket = aws_s3_bucket.s3_iac_example.id
 
   block_public_acls       = true
   block_public_policy     = true
-  ignore_public_acls      = true
   restrict_public_buckets = true
+  ignore_public_acls      = true
 }
 
-resource "aws_s3_bucket_acl" "example" {
-  depends_on = [
-    aws_s3_bucket_ownership_controls.s3_iac_ownership,
-    aws_s3_bucket_public_access_block.s3_access,
-  ]
+resource "aws_s3_bucket" "log_bucket" {
+  bucket = "lz-s3-iac-example-log-bucket"
+}
 
-  bucket = aws_s3_bucket.s3_iac_example.id
-  acl    = "public-read"
+resource "aws_s3_bucket_versioning" "log_bucket_versioning" {
+  bucket = aws_s3_bucket.log_bucket.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "access_log_bucket" {
+  bucket = aws_s3_bucket.log_bucket.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  restrict_public_buckets = true
+  ignore_public_acls      = true
+}
+
+
+resource "aws_s3_bucket_acl" "log_bucket_acl" {
+  bucket = aws_s3_bucket.log_bucket.id
+  acl    = "log-delivery-write"
+}
+
+resource "aws_s3_bucket_logging" "example" {
+  bucket        = aws_s3_bucket.s3_iac_example.id
+  target_bucket = aws_s3_bucket.log_bucket.id
+  target_prefix = "log/"
 }

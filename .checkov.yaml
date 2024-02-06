@@ -1,0 +1,17 @@
+block-list-secret-scan: []
+branch: master
+compact: true
+directory:
+- .
+download-external-modules: false
+evaluate-variables: true
+external-modules-download-path: .external_modules
+mask: []
+skip-check: 
+  - CKV_AWS_144
+  - CKV_AWS_145
+  - CKV2_AWS_62
+  - CKV2_AWS_61
+secrets-history-timeout: 12h
+secrets-scan-file-type: []
+summary-position: top
