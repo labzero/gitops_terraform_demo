@@ -1,0 +1,56 @@
+name: pr-builder
+run-name: PR Builder
+on: pull_request
+
+
+jobs:
+  terraform-validate:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+    - name: Terraform Format
+      run: terraform fmt -check
+    - name: Terraform Init
+      run: terraform init
+    - name: Terraform Validate
+      run: terraform validate
+      
+  security-scanning:
+    needs: terraform-validate
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Checkov Scan
+      uses: bridgecrewio/checkov-action@master
+      with:
+        directory: ./terraform
+        soft_fail: false
+        framework: terraform
+    - name: Upload Checkov Results  
+      uses: actions/upload-artifact@v2
+      with:
+        name: checkov-report
+        path: checkov-report.json
+        
+  terraform-plan:
+    needs: security-scanning
+    runs-on: ubuntu-latest
+    steps:
+    
+    # Terraform Cloud Authentication
+    - uses: hashicorp/terraform-cli@v1
+    - name: Terraform Init
+      run: terraform init
+    - name: Terraform Plan
+      run: terraform plan -out=tfplan
+      continue-on-error: true
+    - name: Upload TF Plan  
+      uses: actions/upload-artifact@v2
+      with:
+        name: tfplan
+        path: tfplan
