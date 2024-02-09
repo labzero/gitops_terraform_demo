@@ -29,7 +29,26 @@ resource "aws_s3_bucket" "s3_iac_example" {
   bucket = "lz-s3-iac-example"
 }
 
-resource "aws_s3_bucket_versioning" "s3_iac_example_versining" {
+resource "aws_s3_bucket_lifecycle_configuration" "s3_iac_example" {
+  bucket = aws_s3_bucket.s3_iac_example.id
+  rule {
+    id     = "expire"
+    status = "Enabled"
+    transition {
+      days          = 30
+      storage_class = "STANDARD_IA"
+    }
+    expiration {
+      days = 90
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+}
+
+resource "aws_s3_bucket_versioning" "s3_iac_example_versioning" {
   bucket = aws_s3_bucket.s3_iac_example.id
   versioning_configuration {
     status = "Enabled"
@@ -47,6 +66,25 @@ resource "aws_s3_bucket_public_access_block" "access_s3_iac_example" {
 
 resource "aws_s3_bucket" "log_bucket" {
   bucket = "lz-s3-iac-example-log-bucket"
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "log_bucket" {
+  bucket = aws_s3_bucket.log_bucket.id
+  rule {
+    id     = "expire"
+    status = "Enabled"
+    transition {
+      days          = 30
+      storage_class = "STANDARD_IA"
+    }
+    expiration {
+      days = 90
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
 }
 
 resource "aws_s3_bucket_versioning" "log_bucket_versioning" {
@@ -71,7 +109,7 @@ resource "aws_s3_bucket_acl" "log_bucket_acl" {
   acl    = "log-delivery-write"
 }
 
-resource "aws_s3_bucket_logging" "example" {
+resource "aws_s3_bucket_logging" "s3_iac_bucket_logging" {
   bucket        = aws_s3_bucket.s3_iac_example.id
   target_bucket = aws_s3_bucket.log_bucket.id
   target_prefix = "log/"
