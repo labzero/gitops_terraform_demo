@@ -2,54 +2,106 @@ name: pr-builder
 run-name: PR Builder
 on: pull_request
 
-permissions: read-all
+permissions:
+  pull-requests: read
 jobs:      
   static-analysis-scanning:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
-    - name: Checkov Scan
-      uses: bridgecrewio/checkov-action@v12
-      with:
-        output_format: cli
-        output_file_path: console      
+      - uses: actions/checkout@master
+      - name: Checkov Scan
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          output_format: cli
+          output_file_path: console      
   terraform-plan:
     needs: static-analysis-scanning
     runs-on: ubuntu-latest
      # These permissions are needed to interact with GitHub's OIDC Token endpoint.
-    permissions:
-      id-token: write
-      contents: read
+     # And for creating GitHub comment to PR.
+    permissions: write-all
     steps:
-    - uses: actions/checkout@master    
+      - uses: actions/checkout@master    
 
-    # Configure AWS Credentials to deploy terraform changes onto AWS
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-region: us-west-2
-        # This is an assumed role created for GitHub Actions to access the statefile of this terraform project
-        role-to-assume: arn:aws:iam::295919900413:role/iac-s3-example-role
-        role-session-name: S3IaCExampleRole
+      # Configure AWS Credentials to deploy terraform changes onto AWS
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-west-2
+          # This is an assumed role created for GitHub Actions to access the statefile of this terraform project
+          role-to-assume: arn:aws:iam::295919900413:role/iac-s3-example-role
+          role-session-name: S3IaCExampleRole
 
-    # Terraform Cloud Authentication
-    - uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: 1.7.2
-        terraform_wrapper: false
-    
-    - name: Terraform Format
-      run: terraform fmt -check
-    
-    - name: Terraform Init
-      run: terraform init
-    
-    - name: Terraform Plan
-      run: terraform plan -out=tfplan
-      continue-on-error: true
-    
-    - name: Upload TF Plan  
-      uses: actions/upload-artifact@v4
-      with:
-        name: tfplan
-        path: tfplan
+      # Terraform Cloud Authentication
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.2
+          terraform_wrapper: false
+      
+      - name: Terraform Format
+        id: fmt
+        run: terraform fmt -check
+      
+      - name: Terraform Init
+        id: init
+        run: terraform init -input=false
+      
+      - name: Terraform Validate
+        id: validate
+        run: | 
+          terraform validate -no-color
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "TERRAFORM_VALIDATE<<$EOF" >> $GITHUB_OUTPUT
+          echo "$(terraform validate -no-color)" >> $GITHUB_OUTPUT
+          echo "$EOF" >> $GITHUB_OUTPUT
+
+      - name: Terraform Plan
+        id: plan
+        # Multi-line outputs 
+        # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#multiline-strings
+        run: |
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "TERRAFORM_PLAN<<$EOF" >> $GITHUB_OUTPUT
+          echo "$(terraform plan -out=tfplan -input=false -no-color)" >> $GITHUB_OUTPUT
+          echo "$EOF" >> $GITHUB_OUTPUT
+        continue-on-error: true
+      
+      - name: Upload TF Plan  
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: tfplan
+      
+      - uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+            <details><summary>Validation Output</summary>
+
+            \`\`\`\n
+            ${{ steps.validate.outputs.TERRAFORM_VALIDATE }}
+            \`\`\`
+
+            </details>
+
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+
+            <details><summary>Show Plan</summary>
+
+            \`\`\`\n
+            ${{ steps.plan.outputs.TERRAFORM_PLAN }}
+            \`\`\`
+
+            </details>
+
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.tf_actions_working_dir }}\`, Workflow: \`${{ github.workflow }}\`*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
