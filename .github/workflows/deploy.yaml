@@ -1,0 +1,39 @@
+name: deploy
+run-name: Provision AWS S3
+permissions: read-all
+
+#checkov:skip=CKV_GHA_7:Manual workflow requires selection of environment
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+        - production
+jobs:
+  terraform-apply:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@master
+
+      # Configure AWS Credentials to deploy terraform changes onto AWS
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-west-2
+          # This is an assumed role created for GitHub Actions to access the statefile of this terraform project
+          role-to-assume: arn:aws:iam::295919900413:role/iac-s3-example-role
+          role-session-name: S3IaCExampleRole
+
+      # Terraform Cloud Authentication
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.2
+          terraform_wrapper: false
+          
+      - name: Terraform apply
+        run: terraform apply -input=false -no-color -auto-approve
