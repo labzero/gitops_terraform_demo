@@ -19,7 +19,9 @@ jobs:
     environment: production
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     # And for creating GitHub comment to PR.
-    permissions: write-all
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     steps:
       - uses: actions/checkout@master
 
