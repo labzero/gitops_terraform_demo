@@ -16,12 +16,10 @@ on:
 jobs:
   terraform-apply:
     runs-on: ubuntu-latest
-    environment: production
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     # And for creating GitHub comment to PR.
-    permissions:
-      contents: read
-      id-token: write
+    permissions: write-all
+    environment: production
     steps:
       - uses: actions/checkout@master
 
