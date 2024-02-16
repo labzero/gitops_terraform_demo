@@ -17,6 +17,9 @@ jobs:
   terraform-apply:
     runs-on: ubuntu-latest
     environment: production
+    # These permissions are needed to interact with GitHub's OIDC Token endpoint.
+    # And for creating GitHub comment to PR.
+    permissions: write-all
     steps:
       - uses: actions/checkout@master
 
@@ -34,6 +37,10 @@ jobs:
         with:
           terraform_version: 1.7.2
           terraform_wrapper: false
-          
+
+      - name: Terraform Init
+        id: init
+        run: terraform init -input=false
+
       - name: Terraform apply
         run: terraform apply -input=false -no-color -auto-approve
