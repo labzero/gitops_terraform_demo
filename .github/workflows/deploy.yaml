@@ -1,5 +1,8 @@
-name: terraform-apply
-run-name: Deploy Application
+name: deploy
+run-name: Provision AWS S3
+permissions: read-all
+
+#checkov:skip=CKV_GHA_7:Manual workflow requires selection of environment
 on:
   workflow_dispatch:
     inputs:
@@ -13,6 +16,7 @@ on:
 jobs:
   terraform-apply:
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - uses: actions/checkout@master
 

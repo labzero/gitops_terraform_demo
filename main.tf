@@ -104,11 +104,6 @@ resource "aws_s3_bucket_public_access_block" "access_log_bucket" {
 }
 
 
-resource "aws_s3_bucket_acl" "log_bucket_acl" {
-  bucket = aws_s3_bucket.log_bucket.id
-  acl    = "log-delivery-write"
-}
-
 resource "aws_s3_bucket_logging" "s3_iac_bucket_logging" {
   bucket        = aws_s3_bucket.s3_iac_example.id
   target_bucket = aws_s3_bucket.log_bucket.id
