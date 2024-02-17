@@ -18,7 +18,9 @@ jobs:
     runs-on: ubuntu-latest
     # These permissions are needed to interact with GitHub's OIDC Token endpoint.
     # And for creating GitHub comment to PR.
-    permissions: write-all
+    permissions:
+      id-token: write
+      contents: read
     environment: production
     steps:
       - uses: actions/checkout@master
