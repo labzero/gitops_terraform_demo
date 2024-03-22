@@ -9,7 +9,7 @@ GitOps demo using GitHub Actions and Terraform to provision S3 bucket
 - DyanmoDB table for state file locking
 - Default tags for provisioned resources
 
-```t
+```hcl
 terraform {
   required_providers {
     aws = {
@@ -42,7 +42,7 @@ provider "aws" {
 
 - Simple provisioned S3 bucket.
 
-```t
+```hcl
 resource "aws_s3_bucket" "s3_iac_example" {
   bucket = "lz-s3-iac-example"
 }
@@ -52,7 +52,7 @@ resource "aws_s3_bucket" "s3_iac_example" {
 
 - Terraform plan to generate speculative plan pre-deploy
 
-```t
+~~~text
 Terraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:
   + create
 
@@ -81,7 +81,7 @@ Terraform will perform the following actions:
     }
 
 Plan: 1 to add, 0 to change, 0 to destroy.
-```
+~~~
 
 ### Checkov scanning
 
@@ -100,7 +100,7 @@ Plan: 1 to add, 0 to change, 0 to destroy.
 
   Let's address issues 1-4.  We will suppress issues 5-7 for the purpose of this demo in the [.checkov.yaml](./.checkov.yaml) file.  You should address these issues depending on your security needs for your S3 resource.
 
-```
+~~~text
 terraform scan results:
 
 Passed checks: 5, Failed checks: 7, Skipped checks: 0
@@ -187,7 +187,7 @@ Check: CKV_AWS_21: "Ensure all data stored in the S3 bucket have versioning enab
 		28 | resource "aws_s3_bucket" "s3_iac_example" {
 		29 |   bucket = "lz-s3-iac-example"
 		30 | }
-```
+~~~
 
 ### Fixing Misconfigurations
 
@@ -199,7 +199,7 @@ Check: CKV_AWS_21: "Ensure all data stored in the S3 bucket have versioning enab
 - CKV2_AWS_61: `aws_s3_bucket_lifecycle_configuration`
 
 
-```t
+```hcl
 resource "aws_s3_bucket" "s3_iac_example" {
   bucket = "lz-s3-iac-example"
 }
